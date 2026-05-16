@@ -1,1 +1,625 @@
-<h1>Indonesia Data Journalist Network</h1>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Penduduk Miskin — Kalimantan Timur 2025</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Fira+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0f1923;
+      color: #f0ece4;
+      font-family: 'Syne', sans-serif;
+    }
+
+    main {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem 4rem;
+    }
+
+    /* HEADER */
+    header { margin-bottom: 2rem; }
+
+    .eyebrow {
+      font-family: 'Fira Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      color: #e67e22;
+      margin-bottom: 0.75rem;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 800;
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.6rem;
+    }
+
+    .sub {
+      font-size: 0.85rem;
+      color: #7a8899;
+      margin-bottom: 1.5rem;
+    }
+
+    .stat-strip {
+      display: flex;
+      align-items: stretch;
+      background: #1c2b3a;
+      border: 1px solid #2a3f52;
+      border-radius: 4px;
+      overflow: hidden;
+      width: fit-content;
+    }
+
+    .stat {
+      padding: 0.8rem 1.4rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    .stat-label {
+      font-family: 'Fira Mono', monospace;
+      font-size: 0.62rem;
+      letter-spacing: 0.12em;
+      color: #7a8899;
+    }
+
+    .stat-val {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #f0ece4;
+    }
+
+    .stat-sub {
+      font-family: 'Fira Mono', monospace;
+      font-size: 0.7rem;
+      margin-top: 0.15rem;
+    }
+
+    .stat-high .stat-label { color: #e05a2b; }
+    .stat-high .stat-sub   { color: #e05a2b; opacity: 0.8; }
+    .stat-low  .stat-label { color: #27ae60; }
+    .stat-low  .stat-sub   { color: #27ae60; opacity: 0.8; }
+
+    .stat-divider {
+      width: 1px;
+      background: #2a3f52;
+      align-self: stretch;
+    }
+
+    /* TABS */
+    .tabs {
+      display: flex;
+      gap: 0.4rem;
+      margin-bottom: 1.75rem;
+      flex-wrap: wrap;
+    }
+
+    .tabs button {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 0.5rem 1.1rem;
+      border: 1px solid #2a3f52;
+      background: transparent;
+      color: #7a8899;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .tabs button:hover { border-color: #e67e22; color: #e67e22; }
+    .tabs button.active { border-color: #e67e22; background: #e67e22; color: #0f1923; }
+
+    /* SECTIONS */
+    .section { display: none; }
+    .section.visible { display: block; }
+
+    .chart-hint {
+      font-size: 0.75rem;
+      color: #7a8899;
+      font-family: 'Fira Mono', monospace;
+      margin-bottom: 1.2rem;
+    }
+
+    /* BAR CHART */
+    .bars { display: flex; flex-direction: column; gap: 0.5rem; }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.3rem 0.5rem;
+      border-radius: 3px;
+      transition: background 0.12s;
+    }
+
+    .bar-row:hover { background: rgba(255,255,255,0.04); }
+    .bar-row.is-max { background: rgba(224,90,43,0.07); }
+    .bar-row.is-min { background: rgba(39,174,96,0.07); }
+
+    .bar-row.total-row {
+      margin-top: 0.6rem;
+      padding-top: 0.9rem;
+      border-top: 1px dashed #2a3f52;
+    }
+
+    .bar-label {
+      font-size: 0.82rem;
+      text-align: right;
+      color: #c8c0b4;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .bar-track {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      height: 22px;
+    }
+
+    .bar-fill {
+      height: 16px;
+      border-radius: 2px;
+      min-width: 4px;
+      flex-shrink: 0;
+      transition: width 0.4s ease;
+    }
+
+    .bar-fill.total-fill { background: #e67e22; opacity: 0.4; }
+
+    .bar-num {
+      font-family: 'Fira Mono', monospace;
+      font-size: 0.78rem;
+      color: #f0ece4;
+      white-space: nowrap;
+    }
+
+    .bar-pct {
+      font-family: 'Fira Mono', monospace;
+      font-size: 0.72rem;
+      color: #7a8899;
+      white-space: nowrap;
+    }
+
+    /* BADGE */
+    .badge {
+      display: inline-block;
+      font-family: 'Fira Mono', monospace;
+      font-size: 0.62rem;
+      font-weight: 500;
+      padding: 0.15rem 0.45rem;
+      border-radius: 2px;
+      margin-left: 0.4rem;
+      vertical-align: middle;
+      letter-spacing: 0.04em;
+    }
+
+    .badge-high { background: rgba(224,90,43,0.18); color: #e05a2b; border: 1px solid rgba(224,90,43,0.35); }
+    .badge-low  { background: rgba(39,174,96,0.15);  color: #27ae60; border: 1px solid rgba(39,174,96,0.3); }
+
+    /* TREEMAP */
+    .treemap-wrap {
+      position: relative;
+      background: #1c2b3a;
+      border: 1px solid #2a3f52;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 1rem;
+    }
+
+    .treemap-wrap svg { display: block; }
+
+    .treemap-tooltip {
+      display: none;
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      background: rgba(15,25,35,0.92);
+      border: 1px solid #e67e22;
+      border-radius: 4px;
+      padding: 0.6rem 0.9rem;
+      font-size: 0.82rem;
+      line-height: 1.6;
+      pointer-events: none;
+      font-family: 'Fira Mono', monospace;
+      color: #f0ece4;
+    }
+
+    .treemap-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem 1.2rem;
+      margin-top: 0.75rem;
+    }
+
+    .leg-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.75rem;
+      color: #9aabb8;
+    }
+
+    .leg-swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    /* TABEL */
+    .tabel-section {
+      overflow-x: auto;
+      border: 1px solid #2a3f52;
+      border-radius: 4px;
+    }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.87rem; min-width: 480px; }
+
+    thead tr { background: #1c2b3a; }
+
+    th {
+      padding: 0.7rem 1rem;
+      text-align: left;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: #7a8899;
+      border-bottom: 1px solid #2a3f52;
+    }
+
+    tbody tr { border-bottom: 1px solid #1c2b3a; transition: background 0.1s; }
+    tbody tr:hover { background: #1c2b3a; }
+    tbody tr.tr-max { background: rgba(224,90,43,0.08); }
+    tbody tr.tr-min { background: rgba(39,174,96,0.07); }
+
+    td { padding: 0.6rem 1rem; vertical-align: middle; }
+
+    .td-rank {
+      font-family: 'Fira Mono', monospace;
+      font-size: 0.72rem;
+      color: #4a6070;
+      width: 32px;
+    }
+
+    .td-nama {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 600;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .td-num {
+      font-family: 'Fira Mono', monospace;
+      font-size: 0.85rem;
+      text-align: right;
+    }
+
+    .td-pct { min-width: 140px; }
+
+    .pct-bar-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .pct-bar {
+      height: 8px;
+      border-radius: 2px;
+      min-width: 4px;
+    }
+
+    .pct-bar-wrap span {
+      font-family: 'Fira Mono', monospace;
+      font-size: 0.75rem;
+      color: #9aabb8;
+      white-space: nowrap;
+    }
+
+    tfoot tr {
+      background: #1c2b3a;
+      border-top: 1px solid #2a3f52;
+    }
+
+    tfoot td {
+      padding: 0.7rem 1rem;
+      font-family: 'Fira Mono', monospace;
+      font-size: 0.82rem;
+      color: #e67e22;
+    }
+
+    /* FOOTER */
+    footer {
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid #1c2b3a;
+      font-size: 0.7rem;
+      color: #4a6070;
+      font-family: 'Fira Mono', monospace;
+    }
+
+    @media (max-width: 580px) {
+      .bar-row { grid-template-columns: 120px 1fr; }
+      .bar-label { font-size: 0.72rem; }
+      h1 { font-size: 1.8rem; }
+      .stat-strip { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">KEMISKINAN · KALIMANTAN TIMUR · 2025</div>
+    <h1>Penduduk Miskin<br/>per Kabupaten/Kota</h1>
+    <p class="sub">Data proyeksi 2025. Satuan: ribu jiwa.</p>
+    <div class="stat-strip" id="stat-strip">
+      <!-- diisi JS -->
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="active" data-tab="bar">▬ Bar Chart</button>
+    <button data-tab="treemap">▦ Treemap</button>
+    <button data-tab="tabel">≡ Tabel</button>
+  </nav>
+
+  <div id="sec-bar"     class="section visible"></div>
+  <div id="sec-treemap" class="section"></div>
+  <div id="sec-tabel"   class="section"></div>
+
+  <footer>Sumber: BPS — Jumlah Penduduk Miskin menurut Kabupaten/Kota, 2025</footer>
+</main>
+
+<script>
+  const raw = [
+    { nama: "Paser",                 jiwa: 24.05 },
+    { nama: "Kutai Barat",           jiwa: 13.24 },
+    { nama: "Kutai Kartanegara",     jiwa: 54.99 },
+    { nama: "Kutai Timur",           jiwa: 34.91 },
+    { nama: "Berau",                 jiwa: 10.96 },
+    { nama: "Penajam Paser Utara",   jiwa:  9.34 },
+    { nama: "Mahakam Ulu",           jiwa:  2.73 },
+    { nama: "Balikpapan",            jiwa: 12.88 },
+    { nama: "Samarinda",             jiwa: 30.45 },
+    { nama: "Bontang",               jiwa:  6.18 },
+  ];
+
+  const TOTAL = 199.71;
+
+  const palette = [
+    "#c0392b","#e05a2b","#e67e22","#f39c12",
+    "#27ae60","#16a085","#2980b9","#8e44ad",
+    "#2c3e50","#7f8c8d"
+  ];
+
+  const data = raw.map(d => ({
+    ...d,
+    pct: ((d.jiwa / TOTAL) * 100).toFixed(1)
+  }));
+
+  const sorted = [...data].sort((a, b) => b.jiwa - a.jiwa);
+  const maxJiwa = sorted[0].jiwa;
+  const minJiwa = sorted[sorted.length - 1].jiwa;
+
+  function isMax(d) { return d.jiwa === maxJiwa; }
+  function isMin(d) { return d.jiwa === minJiwa; }
+  function clr(i)   { return palette[i]; }
+
+  function barColor(d, i) {
+    return isMax(d) ? '#e05a2b' : isMin(d) ? '#27ae60' : clr(i);
+  }
+
+  function badge(d) {
+    if (isMax(d)) return `<span class="badge badge-high">▲ tertinggi</span>`;
+    if (isMin(d)) return `<span class="badge badge-low">▼ terendah</span>`;
+    return '';
+  }
+
+  // ── STAT STRIP ─────────────────────────────────────────────
+  document.getElementById('stat-strip').innerHTML = `
+    <div class="stat">
+      <div class="stat-label">Total Kaltim</div>
+      <div class="stat-val">${TOTAL.toLocaleString('id-ID')} ribu</div>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat stat-high">
+      <div class="stat-label">🔴 Tertinggi</div>
+      <div class="stat-val">${sorted[0].nama}</div>
+      <div class="stat-sub">${sorted[0].jiwa} ribu jiwa</div>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat stat-low">
+      <div class="stat-label">🟢 Terendah</div>
+      <div class="stat-val">${sorted[sorted.length-1].nama}</div>
+      <div class="stat-sub">${sorted[sorted.length-1].jiwa} ribu jiwa</div>
+    </div>
+  `;
+
+  // ── BAR CHART ───────────────────────────────────────────────
+  const barRows = sorted.map((d, i) => `
+    <div class="bar-row ${isMax(d)?'is-max':''} ${isMin(d)?'is-min':''}">
+      <div class="bar-label">${d.nama}${badge(d)}</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:${(d.jiwa/maxJiwa)*100}%;background:${barColor(d,i)}"></div>
+        <span class="bar-num">${d.jiwa.toLocaleString('id-ID')} rb</span>
+        <span class="bar-pct">(${d.pct}%)</span>
+      </div>
+    </div>
+  `).join('');
+
+  document.getElementById('sec-bar').innerHTML = `
+    <p class="chart-hint">Diurutkan dari terbesar ke terkecil</p>
+    <div class="bars">
+      ${barRows}
+      <div class="bar-row total-row">
+        <div class="bar-label"><strong>Kalimantan Timur</strong></div>
+        <div class="bar-track">
+          <div class="bar-fill total-fill" style="width:100%"></div>
+          <span class="bar-num"><strong>${TOTAL} rb</strong></span>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // ── TREEMAP ─────────────────────────────────────────────────
+  const W = 600, H = 340;
+
+  function buildTreemap(items) {
+    const totalVal = items.reduce((s, d) => s + d.jiwa, 0);
+    let rects = [], cx = 0;
+    items.forEach(d => {
+      const bw = (d.jiwa / totalVal) * W;
+      rects.push({ ...d, x: cx, y: 0, w: bw, h: H });
+      cx += bw;
+    });
+    return rects;
+  }
+
+  const rects = buildTreemap([...data].sort((a,b) => b.jiwa - a.jiwa));
+
+  function darken(hex) {
+    const n = parseInt(hex.slice(1), 16);
+    const r = Math.max(0, (n >> 16) - 40);
+    const g = Math.max(0, ((n >> 8) & 0xff) - 40);
+    const b = Math.max(0, (n & 0xff) - 40);
+    return `rgb(${r},${g},${b})`;
+  }
+
+  const svgRects = rects.map((rect, i) => {
+    const c = isMax(rect) ? '#e05a2b' : isMin(rect) ? '#27ae60' : clr(i);
+    const textLarge = rect.w > 60 && rect.h > 30;
+    const textSmall = rect.w > 28 && rect.h > 18;
+    const txt = textLarge ? `
+      <text x="${rect.x + rect.w/2}" y="${rect.y + rect.h/2 - 8}"
+        text-anchor="middle" dominant-baseline="middle"
+        fill="white" font-size="${rect.w > 100 ? 13 : 10}" font-weight="700"
+        font-family="Syne, sans-serif">${rect.nama}</text>
+      <text x="${rect.x + rect.w/2}" y="${rect.y + rect.h/2 + 10}"
+        text-anchor="middle" dominant-baseline="middle"
+        fill="rgba(255,255,255,0.85)" font-size="${rect.w > 100 ? 11 : 9}"
+        font-family="Fira Mono, monospace">${rect.jiwa} rb (${rect.pct}%)</text>
+    ` : textSmall ? `
+      <text x="${rect.x + rect.w/2}" y="${rect.y + rect.h/2}"
+        text-anchor="middle" dominant-baseline="middle"
+        fill="white" font-size="9" font-weight="700"
+        font-family="Syne, sans-serif">${rect.nama.split(' ')[0]}</text>
+    ` : '';
+    return `
+      <g class="tm-cell" data-nama="${rect.nama}" data-jiwa="${rect.jiwa}" data-pct="${rect.pct}" data-color="${c}" data-dark="${darken(c)}">
+        <rect x="${rect.x+1}" y="${rect.y+1}"
+          width="${Math.max(0,rect.w-2)}" height="${Math.max(0,rect.h-2)}"
+          fill="${c}" rx="3"/>
+        ${txt}
+      </g>`;
+  }).join('');
+
+  const legendItems = sorted.map((d, i) => {
+    const c = isMax(d) ? '#e05a2b' : isMin(d) ? '#27ae60' : clr(i);
+    return `<div class="leg-item"><span class="leg-swatch" style="background:${c}"></span><span>${d.nama}${badge(d)}</span></div>`;
+  }).join('');
+
+  document.getElementById('sec-treemap').innerHTML = `
+    <p class="chart-hint">Luas kotak proporsional terhadap jumlah penduduk miskin</p>
+    <div class="treemap-wrap">
+      <svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet">
+        ${svgRects}
+      </svg>
+      <div class="treemap-tooltip" id="tm-tooltip"></div>
+    </div>
+    <div class="treemap-legend">${legendItems}</div>
+  `;
+
+  // Treemap hover
+  document.querySelectorAll('.tm-cell').forEach(g => {
+    const tip = document.getElementById('tm-tooltip');
+    const rect = g.querySelector('rect');
+    const origFill = g.dataset.color;
+    const darkFill = g.dataset.dark;
+
+    g.style.cursor = 'pointer';
+    g.addEventListener('mouseenter', () => {
+      rect.setAttribute('fill', darkFill);
+      tip.style.display = 'block';
+      tip.innerHTML = `<strong>${g.dataset.nama}</strong><br/>${parseFloat(g.dataset.jiwa).toLocaleString('id-ID')} ribu jiwa<br/>${g.dataset.pct}% dari total Kaltim`;
+    });
+    g.addEventListener('mouseleave', () => {
+      rect.setAttribute('fill', origFill);
+      tip.style.display = 'none';
+    });
+  });
+
+  // ── TABEL ───────────────────────────────────────────────────
+  const tbRows = sorted.map((d, i) => {
+    const c = barColor(d, i);
+    return `
+      <tr class="${isMax(d)?'tr-max':''} ${isMin(d)?'tr-min':''}">
+        <td class="td-rank">${i+1}</td>
+        <td class="td-nama">
+          <span class="dot" style="background:${c}"></span>
+          ${d.nama}${badge(d)}
+        </td>
+        <td class="td-num">${d.jiwa.toLocaleString('id-ID')}</td>
+        <td class="td-pct">
+          <div class="pct-bar-wrap">
+            <div class="pct-bar" style="width:${d.pct}%;background:${c}"></div>
+            <span>${d.pct}%</span>
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+
+  document.getElementById('sec-tabel').innerHTML = `
+    <div class="tabel-section">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Kabupaten/Kota</th>
+            <th>Penduduk Miskin (ribu jiwa)</th>
+            <th>% dari Total Kaltim</th>
+          </tr>
+        </thead>
+        <tbody>${tbRows}</tbody>
+        <tfoot>
+          <tr>
+            <td colspan="2"><strong>🗺 Kalimantan Timur</strong></td>
+            <td><strong>${TOTAL}</strong></td>
+            <td><strong>100%</strong></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  `;
+
+  // ── TAB SWITCHING ───────────────────────────────────────────
+  const tabMap = { bar: 'sec-bar', treemap: 'sec-treemap', tabel: 'sec-tabel' };
+
+  document.querySelectorAll('.tabs button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      Object.values(tabMap).forEach(id => document.getElementById(id).classList.remove('visible'));
+      document.getElementById(tabMap[btn.dataset.tab]).classList.add('visible');
+    });
+  });
+</script>
+</body>
+</html>
