@@ -1,1 +1,458 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Arsip Deforestasi Kalimantan Timur — Peta Interaktif 2015–2025</title>
 
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" />
+
+<style>
+  :root{
+    --bg:#0b0a09;
+    --panel:#121010;
+    --panel-2:#161311;
+    --border:#2a2420;
+    --border-soft:#211d19;
+    --red:#d1352b;
+    --red-dim:#8a3530;
+    --amber:#c98a3e;
+    --green:#5b8a6a;
+    --text:#eae6df;
+    --muted:#8f887d;
+    --muted-2:#6b665e;
+  }
+  *{ box-sizing:border-box; }
+  html,body{
+    margin:0; padding:0; height:100%;
+    background:var(--bg); color:var(--text);
+    font-family:'IBM Plex Sans', sans-serif;
+  }
+  .font-display{ font-family:'Oswald', sans-serif; }
+  .font-mono{ font-family:'IBM Plex Mono', monospace; }
+
+  .paper-grain{
+    background-image:
+      radial-gradient(circle at 20% 20%, rgba(209,53,43,0.05), transparent 40%),
+      radial-gradient(circle at 80% 60%, rgba(201,138,62,0.04), transparent 45%);
+    min-height:100%;
+  }
+
+  header.masthead{
+    border-bottom:1px solid var(--border);
+    padding:22px 28px 20px;
+  }
+  .eyebrow{
+    display:flex; align-items:center; gap:8px;
+    color:var(--amber); font-size:11px; letter-spacing:0.25em;
+    text-transform:uppercase; margin-bottom:8px;
+  }
+  h1{
+    font-family:'Oswald', sans-serif;
+    font-weight:600; text-transform:uppercase; letter-spacing:0.03em;
+    font-size:30px; margin:0;
+  }
+  header p.sub{
+    color:var(--muted); font-size:13.5px; max-width:640px; margin:10px 0 0;
+  }
+
+  .stats-row{
+    display:grid; grid-template-columns:repeat(3,1fr); gap:14px;
+    padding:20px 28px;
+  }
+  @media (max-width:760px){ .stats-row{ grid-template-columns:1fr; } }
+  .stat-card{
+    background:var(--panel); border:1px solid var(--border);
+    border-left:2px solid rgba(209,53,43,0.4);
+    border-radius:2px; padding:14px 16px;
+  }
+  .stat-card.green{ border-left-color:rgba(91,138,106,0.4); }
+  .stat-label{
+    display:flex; align-items:center; gap:6px;
+    font-family:'IBM Plex Mono', monospace; font-size:10px;
+    letter-spacing:0.2em; text-transform:uppercase; color:var(--muted); margin-bottom:6px;
+  }
+  .stat-value{
+    font-family:'Oswald', sans-serif; font-size:17px; text-transform:uppercase;
+    letter-spacing:0.02em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .stat-sub{ font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--muted); margin-top:4px; }
+
+  main.grid{
+    display:grid; grid-template-columns:1fr 380px; gap:16px;
+    padding:0 28px 24px;
+  }
+  @media (max-width:960px){ main.grid{ grid-template-columns:1fr; } }
+
+  #map{
+    height:600px; border:1px solid var(--border); border-radius:2px;
+    background:#0e0d0c;
+  }
+  .leaflet-container{ background:#0e0d0c; font-family:'IBM Plex Sans', sans-serif; }
+
+  .legend-box{
+    position:absolute; z-index:500; background:rgba(18,16,16,0.92);
+    border:1px solid var(--border); border-radius:2px; padding:10px 12px;
+    font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--muted);
+    bottom:16px; left:16px;
+  }
+  .legend-title{ text-transform:uppercase; letter-spacing:0.15em; font-size:9.5px; color:var(--amber); margin-bottom:6px; }
+  .legend-gradient{ width:140px; height:8px; border-radius:2px;
+    background:linear-gradient(90deg,#c98a3e,#d1352b); margin-bottom:4px; }
+  .legend-scale{ display:flex; justify-content:space-between; }
+
+  aside.sidebar{
+    background:var(--panel); border:1px solid var(--border); border-radius:2px;
+    padding:18px 20px; height:600px; overflow-y:auto;
+  }
+  .rank-line{
+    font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:0.15em;
+    text-transform:uppercase; color:var(--muted);
+  }
+  .region-name{
+    font-family:'Oswald', sans-serif; font-size:24px; text-transform:uppercase;
+    letter-spacing:0.02em; margin:6px 0 2px;
+  }
+  .stamp{
+    display:inline-block; font-family:'Oswald', sans-serif; font-size:11px;
+    letter-spacing:0.15em; border:3px double var(--red); color:var(--red);
+    transform:rotate(-7deg); padding:3px 8px; border-radius:2px; margin-top:6px;
+  }
+  .big-total{
+    font-family:'IBM Plex Mono', monospace; color:var(--red); font-weight:500;
+    font-size:38px; margin-top:14px; line-height:1;
+  }
+  .big-total-label{ color:var(--muted); font-size:13px; margin-top:4px; }
+  .diff-row{
+    display:flex; align-items:center; gap:6px; margin-top:8px;
+    color:var(--muted); font-size:12px;
+  }
+  .diff-row.up{ color:var(--red); }
+  .diff-row.down{ color:var(--green); }
+
+  .section-label{
+    font-family:'IBM Plex Mono', monospace; font-size:10.5px; letter-spacing:0.2em;
+    text-transform:uppercase; color:var(--muted); margin:22px 0 8px;
+  }
+  canvas#trendChart{ max-height:190px; }
+
+  .compare-bar-wrap{ margin-top:8px; }
+  .compare-row{ margin-bottom:10px; }
+  .compare-label-row{
+    display:flex; justify-content:space-between; font-family:'IBM Plex Mono', monospace;
+    font-size:11px; color:var(--muted); margin-bottom:4px;
+  }
+  .compare-track{ height:9px; background:#1a1613; border-radius:2px; overflow:hidden; }
+  .compare-fill{ height:100%; border-radius:2px; }
+  .compare-fill.region{ background:var(--red); }
+  .compare-fill.avg{ background:var(--amber); }
+
+  footer{
+    border-top:1px solid var(--border); padding:16px 28px 24px;
+    display:flex; align-items:flex-start; gap:10px;
+    color:var(--muted-2); font-family:'IBM Plex Mono', monospace; font-size:11px;
+  }
+
+  ::-webkit-scrollbar{ width:6px; }
+  ::-webkit-scrollbar-thumb{ background:var(--border); border-radius:4px; }
+
+  .leaflet-popup-content-wrapper{
+    background:var(--panel-2); color:var(--text); border-radius:2px;
+    border:1px solid var(--border);
+  }
+  .leaflet-popup-tip{ background:var(--panel-2); }
+  .popup-name{ font-family:'Oswald', sans-serif; text-transform:uppercase; font-size:13px; }
+  .popup-total{ font-family:'IBM Plex Mono', monospace; color:var(--red); font-size:12px; margin-top:2px; }
+</style>
+</head>
+<body>
+<div class="paper-grain">
+
+  <header class="masthead">
+    <h1>Peta Deforestasi Kalimantan Timur</h1>
+    <p class="sub">Peta interaktif kehilangan tutupan hutan di 8 kabupaten/kota, periode 2015–2025. Klik wilayah pada peta untuk melihat rincian.</p>
+  </header>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">🌲 Total Deforestasi Kaltim (Kumulatif)</div>
+      <div class="stat-value" id="statTotal">–</div>
+      <div class="stat-sub">8 kabupaten/kota · 2015–2025</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">🔥 Wilayah Tertinggi</div>
+      <div class="stat-value" id="statHighest">–</div>
+      <div class="stat-sub" id="statHighestSub">–</div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-label">📉 Wilayah Terendah</div>
+      <div class="stat-value" id="statLowest">–</div>
+      <div class="stat-sub" id="statLowestSub">–</div>
+    </div>
+  </div>
+
+  <main class="grid">
+    <div style="position:relative;">
+      <div id="map"></div>
+      <div class="legend-box">
+        <div class="legend-title">Skala Deforestasi (ha)</div>
+        <div class="legend-gradient"></div>
+        <div class="legend-scale"><span>Rendah</span><span>Tinggi</span></div>
+      </div>
+    </div>
+
+    <aside class="sidebar" id="sidebar">
+      <!-- populated by JS -->
+    </aside>
+  </main>
+
+  <footer>
+    <span>🗄</span>
+    <span>Sumber data: STADI (Auriga Nusantara) &amp; Global Forest Watch (University of Maryland). Angka merupakan estimasi kehilangan tutupan pohon dan dapat berbeda dari rilis resmi pemerintah daerah. Peta dasar © OpenStreetMap contributors.</span>
+  </footer>
+
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+// ---------------------------------------------------------------------------
+// DATA — Kompilasi STADI (Auriga) & Global Forest Watch (Univ. of Maryland)
+// ---------------------------------------------------------------------------
+const REGION_DATA = {
+  "Berau": {
+    total: 149359.95,
+    coords: [2.1539, 117.4847],
+    data: {"2015": 17197.33, "2016": 20343.21, "2017": 18416.05, "2018": 2069.92, "2019": 16587.71, "2020": 10031.44, "2021": 9076.09, "2022": 8845.54, "2023": 15327.59, "2024": 14536.12, "2025": 16928.97}
+  },
+  "Kutai Barat": {
+    total: 117553.79,
+    coords: [-0.3476, 115.6591],
+    data: {"2015": 15857.53, "2016": 23078.80, "2017": 7804.78, "2018": 17408.92, "2019": 15301.87, "2020": 8382.82, "2021": 4906.18, "2022": 4373.90, "2023": 6469.63, "2024": 6803.79, "2025": 7165.57}
+  },
+  "Paser": {
+    total: 42129.64,
+    coords: [-1.6917, 116.0238],
+    data: {"2015": 11378.32, "2016": 10076.39, "2017": 2500.49, "2018": 2427.24, "2019": 1871.18, "2020": 974.06, "2021": 1504.02, "2022": 1362.78, "2023": 5656.54, "2024": 2236.06, "2025": 2142.55}
+  },
+  "Kutai Timur": {
+    total: 27913.88,
+    coords: [0.9351, 117.1534],
+    data: {"2015": 3599.34, "2016": 5044.50, "2017": 3800.77, "2018": 3856.27, "2019": 3641.19, "2020": 876.62, "2021": 688.01, "2022": 1519.83, "2023": 1501.54, "2024": 1695.54, "2025": 1690.28}
+  },
+  "Kutai Kartanegara": {
+    total: 19451.49,
+    coords: [-0.4281, 116.7118],
+    data: {"2015": 1880.49, "2016": 4841.00, "2017": 1671.70, "2018": 3648.50, "2019": 2074.11, "2020": 614.10, "2021": 1009.25, "2022": 889.32, "2023": 798.74, "2024": 816.99, "2025": 1207.28}
+  },
+  "Mahakam Ulu": {
+    total: 18132.78,
+    coords: [0.7251, 115.1118],
+    data: {"2015": 3396.61, "2016": 2223.89, "2017": 839.35, "2018": 1161.62, "2019": 1441.27, "2020": 1261.43, "2021": 864.30, "2022": 986.66, "2023": 728.80, "2024": 1676.93, "2025": 3551.92}
+  },
+  "Penajam Paser Utara": {
+    total: 6870.59,
+    coords: [-1.1554, 116.7214],
+    data: {"2015": 758.54, "2016": 1114.21, "2017": 600.01, "2018": 1725.71, "2019": 974.59, "2020": 546.03, "2021": 190.37, "2022": 306.43, "2023": 224.44, "2024": 221.82, "2025": 208.44}
+  },
+  "Balikpapan": {
+    total: 426.20,
+    coords: [-1.2379, 116.8529],
+    data: {"2015": 21.77, "2016": 45.15, "2017": 82.22, "2018": 12.08, "2019": 2.92, "2020": 23.15, "2021": 14.46, "2022": 59.15, "2023": 127.53, "2024": 26.00, "2025": 11.77}
+  }
+};
+
+const YEARS = ["2015","2016","2017","2018","2019","2020","2021","2022","2023","2024","2025"];
+
+// --- Helpers ---------------------------------------------------------------
+const fmtInt = n => Math.round(n).toLocaleString('id-ID');
+const fmt2   = n => n.toLocaleString('id-ID', {minimumFractionDigits:2, maximumFractionDigits:2});
+
+const names = Object.keys(REGION_DATA);
+const totals = names.map(n => REGION_DATA[n].total);
+const maxTotal = Math.max(...totals);
+const minTotal = Math.min(...totals);
+const provinceTotal = totals.reduce((a,b)=>a+b, 0);
+const provinceAvg = provinceTotal / names.length;
+const ranked = [...names].sort((a,b) => REGION_DATA[b].total - REGION_DATA[a].total);
+const highestName = ranked[0];
+const lowestName = ranked[ranked.length - 1];
+
+function colorFor(total){
+  const t = maxTotal === minTotal ? 0 : (total - minTotal) / (maxTotal - minTotal);
+  // interpolate amber (#c98a3e) -> red (#d1352b)
+  const c1 = [201,138,62], c2 = [209,53,43];
+  const r = Math.round(c1[0] + (c2[0]-c1[0])*t);
+  const g = Math.round(c1[1] + (c2[1]-c1[1])*t);
+  const b = Math.round(c1[2] + (c2[2]-c1[2])*t);
+  return `rgb(${r},${g},${b})`;
+}
+function radiusFor(total){
+  const minR = 10, maxR = 34;
+  const t = maxTotal === minTotal ? 0 : Math.sqrt(total / maxTotal);
+  return minR + (maxR - minR) * t;
+}
+
+// --- Top stat cards ----------------------------------------------------------
+document.getElementById('statTotal').textContent = fmtInt(provinceTotal) + ' ha';
+document.getElementById('statHighest').textContent = highestName;
+document.getElementById('statHighestSub').textContent = fmtInt(REGION_DATA[highestName].total) + ' ha';
+document.getElementById('statLowest').textContent = lowestName;
+document.getElementById('statLowestSub').textContent = fmtInt(REGION_DATA[lowestName].total) + ' ha';
+
+// --- Map ---------------------------------------------------------------------
+const map = L.map('map', { scrollWheelZoom: true }).setView([0.6, 116.3], 7);
+
+// Menggunakan basemap CARTO Voyager (tampilan default/terang, mirip gaya peta OSM
+// standar: jalan, label kota, warna terang). Data peta © OpenStreetMap contributors,
+// gaya © CARTO. Tile resmi tile.openstreetmap.org membatasi akses untuk trafik
+// non-browser/aplikasi pihak ketiga (lihat osm.wiki/Blocked), sehingga sering
+// memblokir saat dibuka dari file lokal atau environment preview. CARTO menyediakan
+// basemap gratis berbasis data OSM yang aman untuk hosting publik seperti GitHub Pages.
+const primaryTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+  maxZoom: 19,
+  subdomains: 'abcd',
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+});
+
+// Fallback ke tile OSM standar jika CARTO tidak dapat diakses (mis. offline/proxy tertentu)
+primaryTiles.on('tileerror', function () {
+  if (!map.hasLayer(fallbackTiles)) {
+    fallbackTiles.addTo(map);
+  }
+});
+const fallbackTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19,
+  attribution: '&copy; OpenStreetMap contributors'
+});
+
+primaryTiles.addTo(map);
+
+const markers = {};
+
+function styleFor(name, selected){
+  return {
+    radius: radiusFor(REGION_DATA[name].total),
+    fillColor: colorFor(REGION_DATA[name].total),
+    color: selected ? '#eae6df' : '#0b0a09',
+    weight: selected ? 3 : 1.5,
+    opacity: 1,
+    fillOpacity: selected ? 0.9 : 0.72
+  };
+}
+
+names.forEach(name => {
+  const region = REGION_DATA[name];
+  const marker = L.circleMarker(region.coords, styleFor(name, false)).addTo(map);
+  marker.bindPopup(
+    `<div class="popup-name">${name}</div><div class="popup-total">${fmtInt(region.total)} ha total</div>`
+  );
+  marker.on('click', () => selectRegion(name));
+  markers[name] = marker;
+});
+
+let trendChart = null;
+let currentSelection = null;
+
+function selectRegion(name){
+  if (currentSelection && markers[currentSelection]) {
+    markers[currentSelection].setStyle(styleFor(currentSelection, false));
+  }
+  currentSelection = name;
+  markers[name].setStyle(styleFor(name, true));
+  markers[name].bringToFront();
+  renderSidebar(name);
+}
+
+function renderSidebar(name){
+  const region = REGION_DATA[name];
+  const rank = ranked.indexOf(name) + 1;
+  const diffPct = ((region.total - provinceAvg) / provinceAvg) * 100;
+  const isUp = diffPct >= 0;
+  const isWorst = rank === 1;
+
+  const sidebar = document.getElementById('sidebar');
+  sidebar.innerHTML = `
+    <div class="rank-line">Peringkat #${rank} dari ${names.length}</div>
+    <div class="region-name">${name}</div>
+    ${isWorst ? '<span class="stamp">TERPARAH</span>' : ''}
+    <div class="big-total">${fmt2(region.total)}</div>
+    <div class="big-total-label">hektare hilang (2015–2025)</div>
+    <div class="diff-row ${isUp ? 'up' : 'down'}">
+      ${isUp ? '▲' : '▼'} ${isUp ? '+' : ''}${diffPct.toFixed(1)}% dibanding rerata provinsi (${fmtInt(provinceAvg)} ha)
+    </div>
+
+    <div class="section-label">Tren Kehilangan Tahunan (ha)</div>
+    <canvas id="trendChart"></canvas>
+
+    <div class="section-label">Perbandingan Total vs Rerata Provinsi</div>
+    <div class="compare-bar-wrap">
+      <div class="compare-row">
+        <div class="compare-label-row"><span>${name}</span><span>${fmtInt(region.total)} ha</span></div>
+        <div class="compare-track"><div class="compare-fill region" style="width:${Math.min(100, (region.total / Math.max(region.total, provinceAvg) / 1.1) * 100)}%"></div></div>
+      </div>
+      <div class="compare-row">
+        <div class="compare-label-row"><span>Rerata Provinsi</span><span>${fmtInt(provinceAvg)} ha</span></div>
+        <div class="compare-track"><div class="compare-fill avg" style="width:${Math.min(100, (provinceAvg / Math.max(region.total, provinceAvg) / 1.1) * 100)}%"></div></div>
+      </div>
+    </div>
+  `;
+
+  const yearValues = YEARS.map(y => region.data[y] || 0);
+  const maxVal = Math.max(...yearValues);
+
+  const ctx = document.getElementById('trendChart').getContext('2d');
+  if (trendChart) trendChart.destroy();
+  trendChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: YEARS,
+      datasets: [{
+        data: yearValues,
+        backgroundColor: yearValues.map(v => v === maxVal ? '#d1352b' : '#8a3530'),
+        borderRadius: 2,
+        barPercentage: 0.7
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#181412',
+          borderColor: '#2a2420',
+          borderWidth: 1,
+          titleColor: '#c98a3e',
+          bodyColor: '#eae6df',
+          bodyFont: { family: 'IBM Plex Mono' },
+          titleFont: { family: 'IBM Plex Mono' },
+          callbacks: {
+            label: (item) => fmt2(item.raw) + ' ha'
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: '#8f887d', font: { family: 'IBM Plex Mono', size: 10.5 } }
+        },
+        y: {
+          grid: { color: '#211d19' },
+          ticks: {
+            color: '#8f887d',
+            font: { family: 'IBM Plex Mono', size: 10 },
+            callback: v => fmtInt(v)
+          }
+        }
+      }
+    }
+  });
+}
+
+// Default selection on load: the highest-deforestation region
+selectRegion(highestName);
+</script>
+</body>
+</html>
