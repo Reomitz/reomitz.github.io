@@ -1,1 +1,335 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transformasi Delta Mahakam (1990–2019)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0f172a; --panel:#161f37; --panel-line:#26334f;
+    --emerald:#10b981; --emerald-soft:#065f46;
+    --amber:#fbbf24; --amber-soft:#92400e;
+    --gray-cell:#475569;
+    --ink:#e2e8f0; --ink-mute:#8896b3;
+  }
+  *{box-sizing:border-box;}
+  html,body{background:var(--bg); color:var(--ink); font-family:'Plus Jakarta Sans',sans-serif;}
+  .panel{background:var(--panel); border:1px solid var(--panel-line);}
+  .num{font-variant-numeric:tabular-nums;}
+  .waffle-cell{aspect-ratio:1/1; border-radius:3px; transition:background-color .55s ease, transform .55s ease; background:var(--gray-cell);}
+  .waffle-cell.mangrove{background:var(--emerald);}
+  .waffle-cell.tambak{background:var(--amber);}
+  .yr-btn{transition:all .18s ease;}
+  .yr-btn.active{background:linear-gradient(135deg, var(--emerald), var(--amber)); color:#0f172a; font-weight:700;}
+  input[type=range]{-webkit-appearance:none; appearance:none; height:4px; background:var(--panel-line); border-radius:4px;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; appearance:none; width:20px; height:20px; border-radius:50%; background:var(--amber); box-shadow:0 0 0 5px rgba(251,191,36,.18); cursor:pointer; margin-top:-8px;}
+  input[type=range]::-moz-range-thumb{width:20px; height:20px; border-radius:50%; background:var(--amber); border:none; box-shadow:0 0 0 5px rgba(251,191,36,.18); cursor:pointer;}
+  .gradient-text{background:linear-gradient(90deg, var(--emerald), var(--amber)); -webkit-background-clip:text; background-clip:text; color:transparent;}
+  .fade-key{animation:fadeKey .5s ease;}
+  @keyframes fadeKey{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);}}
+  @media (prefers-reduced-motion: reduce){ .waffle-cell{transition:none;} }
+</style>
+</head>
+<body class="min-h-screen">
 
+<div class="max-w-6xl mx-auto px-5 sm:px-8 py-8 sm:py-12">
+
+  <!-- HEADER -->
+  <header class="mb-10">
+    <p class="font-semibold text-xs tracking-[0.25em] uppercase mb-3" style="color:var(--amber)">Ekologi Pesisir Kalimantan Timur</p>
+    <h1 class="text-3xl sm:text-5xl font-extrabold leading-tight tracking-tight">
+      Transformasi <span class="gradient-text">Delta Mahakam</span>
+    </h1>
+    <p class="text-base sm:text-lg mt-4 max-w-2xl" style="color:var(--ink-mute)">
+      Visualisasi peralihan ekosistem dari hutan mangrove alami menjadi jaringan petakan tambak masif, 1990–2019.
+    </p>
+    <div class="flex flex-wrap items-center gap-3 mt-5">
+      <span class="panel rounded-full px-4 py-1.5 text-sm font-semibold num">Total Luas Daratan: 107.221 Ha</span>
+      <span class="panel rounded-full px-4 py-1.5 text-sm" style="color:var(--ink-mute)">Sumber: Bappeda Kukar &middot; DKP Kukar &middot; Sentinel-1 YKAN</span>
+    </div>
+  </header>
+
+  <!-- CONTROLS -->
+  <section class="panel rounded-xl p-5 sm:p-6 mb-8">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+      <h2 class="font-bold text-lg">Jelajahi Garis Waktu <span class="font-normal text-sm" style="color:var(--ink-mute)">&mdash; silakan klik tahun untuk informasi lebih lanjut</span></h2>
+      <div id="yearButtons" class="flex flex-wrap gap-2"></div>
+    </div>
+    <input id="yearSlider" type="range" min="0" max="4" step="1" value="0" class="w-full">
+    <div class="flex justify-between mt-2 text-xs font-medium num" style="color:var(--ink-mute)">
+      <span>1990</span><span>2000</span><span>2003</span><span>2005</span><span>2019</span>
+    </div>
+  </section>
+
+  <div class="grid grid-cols-1 lg:grid-cols-[1fr_1.1fr] gap-6 mb-8">
+
+    <!-- WAFFLE GRID -->
+    <section class="panel rounded-xl p-5 sm:p-6">
+      <div class="flex items-center justify-between mb-1">
+        <h2 class="font-bold text-lg">Matriks Proporsi Daratan</h2>
+        <span id="statusBadge" class="text-xs font-semibold px-3 py-1 rounded-full num" style="background:var(--emerald-soft); color:#d1fae5"></span>
+      </div>
+      <p class="text-xs mb-4" style="color:var(--ink-mute)">100 kotak &middot; 1 kotak ≈ 1% luas daratan (±1.072 Ha)</p>
+      <div id="waffleGrid" class="grid grid-cols-10 gap-1.5"></div>
+      <div class="flex flex-wrap gap-4 mt-5 text-xs font-medium">
+        <span class="flex items-center gap-2"><span class="w-3 h-3 rounded-sm" style="background:var(--emerald)"></span>Mangrove Alami</span>
+        <span class="flex items-center gap-2"><span class="w-3 h-3 rounded-sm" style="background:var(--amber)"></span>Petakan Tambak</span>
+        <span class="flex items-center gap-2"><span class="w-3 h-3 rounded-sm" style="background:var(--gray-cell)"></span>Sungai / Permukiman</span>
+      </div>
+    </section>
+
+    <!-- STAT CARDS -->
+    <section class="grid grid-cols-2 gap-4 content-start">
+      <div class="panel rounded-xl p-5 fade-key" id="cardTambak">
+        <p class="text-xs font-semibold uppercase tracking-wide" style="color:var(--ink-mute)">Okupansi Tambak</p>
+        <p id="tambakHa" class="text-3xl font-extrabold mt-1 num" style="color:var(--amber)"></p>
+        <p id="tambakPct" class="text-sm font-medium num" style="color:var(--ink-mute)"></p>
+      </div>
+      <div class="panel rounded-xl p-5 fade-key" id="cardMangrove">
+        <p class="text-xs font-semibold uppercase tracking-wide" style="color:var(--ink-mute)">Sisa Hutan Mangrove</p>
+        <p id="mangroveHa" class="text-3xl font-extrabold mt-1 num" style="color:var(--emerald)"></p>
+        <p id="mangrovePct" class="text-sm font-medium num" style="color:var(--ink-mute)"></p>
+      </div>
+      <div class="panel rounded-xl p-5 fade-key col-span-2">
+        <p class="text-xs font-semibold uppercase tracking-wide" style="color:var(--ink-mute)">Estimasi Jumlah Unit Tambak</p>
+        <p id="unitCount" class="text-3xl font-extrabold mt-1 num"></p>
+        <p id="unitSource" class="text-sm font-medium" style="color:var(--ink-mute)"></p>
+      </div>
+      <div class="panel rounded-xl p-5 fade-key col-span-2">
+        <p class="text-xs font-semibold uppercase tracking-wide mb-1.5" style="color:var(--ink-mute)">Catatan Historis</p>
+        <p id="narrativeNote" class="text-sm leading-relaxed"></p>
+      </div>
+    </section>
+  </div>
+
+  <!-- CHART -->
+  <section class="panel rounded-xl p-5 sm:p-6 mb-8">
+    <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+      <h2 class="font-bold text-lg">Tren Persilangan Ekosistem, 1990–2019</h2>
+      <div class="flex items-center gap-4 text-xs font-medium">
+        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full" style="background:var(--amber)"></span>Luas Tambak</span>
+        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full" style="background:var(--emerald)"></span>Sisa Mangrove</span>
+      </div>
+    </div>
+    <div style="height:320px;"><canvas id="trendChart"></canvas></div>
+  </section>
+
+  <!-- PULL NOTE -->
+  <section class="panel rounded-xl p-5 sm:p-6 mb-8 border-l-4" style="border-left-color:var(--amber)">
+    <p class="text-lg sm:text-xl font-semibold leading-snug">
+      &ldquo;Sekitar <span style="color:var(--amber)">80%</span> alih fungsi hutan mangrove pada periode 1990–2000 berubah langsung menjadi petakan tambak.&rdquo;
+    </p>
+    <p class="text-xs mt-2 num" style="color:var(--ink-mute)">— Temuan analisis citra Sentinel-1, YKAN</p>
+  </section>
+
+  <!-- SOURCES -->
+  <footer class="text-xs leading-relaxed pt-6 border-t" style="border-color:var(--panel-line); color:var(--ink-mute)">
+    <p class="font-semibold uppercase tracking-wide mb-2" style="color:var(--ink)">Sumber Data</p>
+    <ol class="space-y-1 num">
+      <li>1. Bappeda Kabupaten Kutai Kartanegara — luas &amp; unit tambak, 2003.</li>
+      <li>2. Dinas Kelautan dan Perikanan (DKP) Kutai Kartanegara — luas tambak, 2005.</li>
+      <li>3. Yayasan Konservasi Alam Nusantara (YKAN) — analisis citra Sentinel-1, 2019.</li>
+    </ol>
+    <p class="mt-4">Matriks waffle dan grafik tren adalah visualisasi abstrak berbasis data literatur di atas, disusun untuk keperluan edukasi dan bukan pengukuran geospasial presisi.</p>
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  const TOTAL_HA = 107221;
+
+  const DATA = [
+    {year:1990, mangrovePct:88, mangroveHa:94354, tambakPct:7,  tambakHa:7505,  units:1500,  unitsLabel:'< 1.500',  status:'Baseline Alami', source:'Estimasi baseline pra-ekspansi',
+      note:'Delta masih didominasi hutan mangrove alami. Petakan tambak baru muncul tipis di garis pantai terluar, menandai awal aktivitas budidaya skala kecil.'},
+    {year:2000, mangrovePct:45, mangroveHa:48250, tambakPct:50, tambakHa:53610, units:9500,  unitsLabel:'≈ 9.500',  status:'Dekade Puncak Konversi', source:'Estimasi tren 1990–2000',
+      note:'Satu dekade menjadi titik balik: luas tambak menyalip luas mangrove untuk pertama kalinya. YKAN mencatat sekitar 80% alih fungsi periode ini terjadi langsung menjadi tambak.'},
+    {year:2003, mangrovePct:41, mangroveHa:43960, tambakPct:54, tambakHa:57912, units:10645, unitsLabel:'10.645',  status:'Tercatat Bappeda Kukar', source:'Bappeda Kutai Kartanegara, 2003',
+      note:'Survei resmi Bappeda Kukar mengonfirmasi luas tambak 57.912 Ha dalam 10.645 unit petakan — data acuan utama estimasi jumlah unit pada tahun-tahun lain.'},
+    {year:2005, mangrovePct:25, mangroveHa:26810, tambakPct:70, tambakHa:75311, units:13500, unitsLabel:'> 13.500', status:'Tercatat DKP Kukar', source:'DKP Kutai Kartanegara, 2005',
+      note:'DKP Kukar mencatat lonjakan tajam ke 75.311 Ha (±70% luas delta) hanya dalam dua tahun — mangrove tersisa seperempat dari luas semula.'},
+    {year:2019, mangrovePct:18, mangroveHa:19300, tambakPct:77, tambakHa:82560, units:15000, unitsLabel:'> 15.000', status:'Analisis Sentinel-1 YKAN', source:'Citra Sentinel-1, diproses YKAN',
+      note:'Citra radar Sentinel-1 memperlihatkan interior pulau delta nyaris tertutup penuh petakan tambak; mangrove alami tersisa 18% dari total luas daratan.'},
+  ];
+
+  // hitung proporsi abu-abu (sungai/permukiman) per tahun agar total selalu 100
+  DATA.forEach(d=>{
+    d.grayPct = 100 - d.mangrovePct - d.tambakPct;
+    d.grayHa = TOTAL_HA - d.mangroveHa - d.tambakHa;
+  });
+
+  const fmt = n => Math.round(n).toLocaleString('id-ID');
+
+  // ---------- WAFFLE GRID SETUP ----------
+  const GRID_SIZE = 100;
+  const FIXED_GRAY = [23,34,45,56,67]; // diagonal tetap merepresentasikan alur sungai/permukiman
+  const grid = document.getElementById('waffleGrid');
+  const cells = [];
+  for(let i=0;i<GRID_SIZE;i++){
+    const div = document.createElement('div');
+    div.className = 'waffle-cell';
+    grid.appendChild(div);
+    cells.push(div);
+  }
+  // urutan konversi tetap (acak sekali saat load) untuk sel non-abu2
+  const nonGrayIdx = [];
+  for(let i=0;i<GRID_SIZE;i++) if(!FIXED_GRAY.includes(i)) nonGrayIdx.push(i);
+  for(let i=nonGrayIdx.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [nonGrayIdx[i], nonGrayIdx[j]] = [nonGrayIdx[j], nonGrayIdx[i]];
+  }
+
+  function renderWaffle(d){
+    FIXED_GRAY.forEach(i=>{
+      cells[i].className = 'waffle-cell';
+    });
+    nonGrayIdx.forEach((cellIndex, rank)=>{
+      const isTambak = rank < d.tambakPct;
+      cells[cellIndex].className = 'waffle-cell ' + (isTambak ? 'tambak' : 'mangrove');
+    });
+  }
+
+  // ---------- CHART.JS ----------
+  const ctx = document.getElementById('trendChart').getContext('2d');
+  const labels = DATA.map(d=>String(d.year));
+  const tambakSeries = DATA.map(d=>d.tambakHa);
+  const mangroveSeries = DATA.map(d=>d.mangroveHa);
+
+  const activeLinePlugin = {
+    id: 'activeLine',
+    afterDraw(chart){
+      const idx = chart.$activeIndex;
+      if(idx===undefined || idx===null) return;
+      const meta = chart.getDatasetMeta(0);
+      const point = meta.data[idx];
+      if(!point) return;
+      const {ctx, chartArea} = chart;
+      ctx.save();
+      ctx.beginPath();
+      ctx.setLineDash([4,4]);
+      ctx.strokeStyle = 'rgba(226,232,240,0.35)';
+      ctx.lineWidth = 1.5;
+      ctx.moveTo(point.x, chartArea.top);
+      ctx.lineTo(point.x, chartArea.bottom);
+      ctx.stroke();
+      ctx.restore();
+    }
+  };
+
+  const trendChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Luas Okupansi Tambak (Ha)',
+          data: tambakSeries,
+          borderColor: '#fbbf24',
+          backgroundColor: 'rgba(251,191,36,0.12)',
+          borderWidth: 3,
+          tension: 0.35,
+          fill: true,
+          pointRadius: 5,
+          pointBackgroundColor: '#fbbf24',
+          pointBorderColor: '#0f172a',
+          pointBorderWidth: 2,
+        },
+        {
+          label: 'Sisa Hutan Mangrove (Ha)',
+          data: mangroveSeries,
+          borderColor: '#10b981',
+          backgroundColor: 'rgba(16,185,129,0.12)',
+          borderWidth: 3,
+          tension: 0.35,
+          fill: true,
+          pointRadius: 5,
+          pointBackgroundColor: '#10b981',
+          pointBorderColor: '#0f172a',
+          pointBorderWidth: 2,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#161f37',
+          borderColor: '#26334f',
+          borderWidth: 1,
+          titleColor: '#e2e8f0',
+          bodyColor: '#cbd5e1',
+          padding: 10,
+          callbacks: {
+            label: c => c.dataset.label + ': ' + c.parsed.y.toLocaleString('id-ID') + ' Ha'
+          }
+        }
+      },
+      scales: {
+        x: { grid: { color: '#1e293b' }, ticks: { color: '#8896b3', font: { family: "'Plus Jakarta Sans'" } } },
+        y: { grid: { color: '#1e293b' }, ticks: { color: '#8896b3', font: { family: "'Plus Jakarta Sans'" }, callback: v => (v/1000)+'k' } }
+      }
+    },
+    plugins: [activeLinePlugin]
+  });
+
+  // ---------- YEAR BUTTONS ----------
+  const btnWrap = document.getElementById('yearButtons');
+  DATA.forEach((d, i)=>{
+    const b = document.createElement('button');
+    b.textContent = d.year;
+    b.className = 'yr-btn text-sm px-3.5 py-1.5 rounded-full num';
+    b.style.background = 'var(--bg)';
+    b.style.border = '1px solid var(--panel-line)';
+    b.style.color = 'var(--ink-mute)';
+    b.addEventListener('click', ()=> setYear(i));
+    btnWrap.appendChild(b);
+  });
+  const yearBtns = Array.from(btnWrap.children);
+
+  const slider = document.getElementById('yearSlider');
+  slider.addEventListener('input', e => setYear(parseInt(e.target.value,10)));
+
+  function setYear(idx){
+    const d = DATA[idx];
+    slider.value = idx;
+
+    yearBtns.forEach((b,i)=>{
+      b.classList.toggle('active', i===idx);
+      if(i!==idx){ b.style.background='var(--bg)'; b.style.color='var(--ink-mute)'; }
+      else { b.style.background=''; }
+    });
+
+    renderWaffle(d);
+
+    document.getElementById('tambakHa').textContent = fmt(d.tambakHa) + ' Ha';
+    document.getElementById('tambakPct').textContent = d.tambakPct + '% dari total daratan';
+    document.getElementById('mangroveHa').textContent = fmt(d.mangroveHa) + ' Ha';
+    document.getElementById('mangrovePct').textContent = d.mangrovePct + '% dari total daratan';
+    document.getElementById('unitCount').textContent = d.unitsLabel + ' unit';
+    document.getElementById('unitSource').textContent = 'Sumber: ' + d.source;
+    document.getElementById('narrativeNote').textContent = d.note;
+    document.getElementById('statusBadge').textContent = d.status;
+
+    ['cardTambak','cardMangrove'].forEach(id=>{
+      const el = document.getElementById(id);
+      el.classList.remove('fade-key');
+      void el.offsetWidth;
+      el.classList.add('fade-key');
+    });
+
+    trendChart.$activeIndex = idx;
+    trendChart.update();
+  }
+
+  setYear(0);
+})();
+</script>
+</body>
+</html>
